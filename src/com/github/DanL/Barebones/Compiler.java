@@ -111,7 +111,7 @@ public class Compiler {
 		ArrayList<Long> whileLoopPointers = new ArrayList<Long>();
 		byte[] currentInstruction;
 		for (String line: tokens) {
-			if (line.contains("#")) {
+			if (line.trim().startsWith("#")) {
 				continue; //Comment, so ignore.
 			}
 			currentInstruction = new byte[7];

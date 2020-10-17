@@ -61,18 +61,25 @@ public class Interpreter {
 		//We now just step through the code one instruction at a time and run it.
 		int pointer = 0; //This can go forward and backwards, so don't use a for loop.
 		int maxPointer = tokens.length;
+		boolean skipping = false; //If this is true, ignore any code we come across.
 		String ci;
 		String inst;
 		String var;
 		String[] split;
 		while (pointer < maxPointer) {
 			ci = tokens[pointer].trim().toLowerCase();
-			if (ci.contains("#")) { //Comment, so ignore it.
+			if (ci.startsWith("#")) { //Comment, so ignore it.
 				pointer++;
 				continue;
 			}
 			if (printTraceSteps) {
 				System.out.println(ci);
+			}
+			if (skipping) {
+				if (printTraceSteps) {
+					System.out.println("Skipped.");
+				}
+				
 			}
 			split = ci.split(" ");
 			inst = split[0];
@@ -97,6 +104,17 @@ public class Interpreter {
 				continue;
 			}
 			var = split[1];
+			if (inst.contentEquals("if")) {
+				if (vars.getOrDefault(var, 0) == 0) {
+					//Zero, so skip.
+					skipping = true;
+					pointer++;
+					continue;
+				}
+				else {
+					//Do not skip.
+				}
+			}
 			if (inst.contentEquals("while")) {
 				//While loops are annoying.
 				//First off, save the current pointer onto the pointer stack.
