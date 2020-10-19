@@ -104,7 +104,7 @@ public class Compiler {
 	 * @return The tokens we were given, compiled into bytes.
 	 * @throws IOException 
 	 */
-	public ByteArrayOutputStream compile(boolean verbose) throws IOException {
+	public byte[] compile(boolean verbose) throws IOException {
 		ByteArrayOutputStream rawCode = new ByteArrayOutputStream();
 		int length = 0;
 		ArrayList<String> definedVars = new ArrayList<String>();
@@ -191,6 +191,6 @@ public class Compiler {
 		returnStream.write(numToBytes((short) definedVars.size()));
 		returnStream.write(numToBytes(length));
 		returnStream.write(rawCode.toByteArray());
-		return returnStream; //Temporary
+		return returnStream.toByteArray(); //Temporary
 	}
 }

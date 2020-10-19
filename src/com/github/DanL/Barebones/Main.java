@@ -1,6 +1,5 @@
 package com.github.DanL.Barebones;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -48,16 +47,16 @@ public class Main {
 			}
 			else if (m == Mode.COMPILE) {
 				Compiler comp = new Compiler(program);
-				ByteArrayOutputStream bytecode = comp.compile(!hasVFlag);
+				byte[] bytecode = comp.compile(!hasVFlag);
 				File byteCodeOut = new File(args[0] + ".comp");
 				FileOutputStream writer = new FileOutputStream(byteCodeOut);
-				writer.write(bytecode.toByteArray());
+				writer.write(bytecode);
 				writer.close();
 			}
 			else if (m == Mode.JIT) {
 				Compiler comp = new Compiler(program);
-				ByteArrayOutputStream bytecode = comp.compile(!hasVFlag);
-				CompiledExec programRunner = new CompiledExec(bytecode.toByteArray());
+				byte[] bytecode = comp.compile(!hasVFlag);
+				CompiledExec programRunner = new CompiledExec(bytecode);
 				programRunner.execute(!hasVFlag);
 			}
 			if (hasTFlag) {
