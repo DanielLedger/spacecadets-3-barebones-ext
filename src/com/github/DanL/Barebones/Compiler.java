@@ -104,14 +104,14 @@ public class Compiler {
 	 * @return The tokens we were given, compiled into bytes.
 	 * @throws IOException 
 	 */
-	public ByteArrayOutputStream compile(boolean verbose) throws IOException {
+	public byte[] compile(boolean verbose) throws IOException {
 		ByteArrayOutputStream rawCode = new ByteArrayOutputStream();
 		int length = 0;
 		ArrayList<String> definedVars = new ArrayList<String>();
 		ArrayList<Long> whileLoopPointers = new ArrayList<Long>();
 		byte[] currentInstruction;
 		for (String line: tokens) {
-			if (line.contains("#")) {
+			if (line.trim().startsWith("#")) {
 				continue; //Comment, so ignore.
 			}
 			currentInstruction = new byte[7];
@@ -191,6 +191,6 @@ public class Compiler {
 		returnStream.write(numToBytes((short) definedVars.size()));
 		returnStream.write(numToBytes(length));
 		returnStream.write(rawCode.toByteArray());
-		return returnStream; //Temporary
+		return returnStream.toByteArray(); //Temporary
 	}
 }
