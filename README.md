@@ -17,10 +17,7 @@ Subtract one from a variable.
   
 Loop until var is 0.
 
-`while var not 0 do;
-...
-...
-end`
+`while var not 0 do; ...end;`
 
 In addition, this version of the language has some extra features that the main language does not.
 Note that programs compiled with these features will still work on the compiler from Challenge 2: they use the same 4 statments but organised differently.
