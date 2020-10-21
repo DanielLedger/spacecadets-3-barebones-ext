@@ -1,0 +1,24 @@
+clear X;
+incr X;
+clear Y;
+#incr Y;
+clear Z;
+incr Z;
+if X not 0 do;
+    #This will run by default;
+    incr Z;
+elif Y not 0 do;
+    #This won't run by default;
+    decr Z;
+else;
+    #This also won't run by default;
+    incr Z;
+    incr Z;
+endif;
+
+#Expected results (note that until it hits a semicolon
+comments can go on forever, no matter how weirdly).
+X = 1, Y = 1 -> Z = 2
+X = 0, Y = 1 -> Z = 0
+X = 0, Y = 0 -> Z = 3
+X = 1, Y = 0 -> Z = 2;
