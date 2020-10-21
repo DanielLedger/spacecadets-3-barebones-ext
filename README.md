@@ -25,7 +25,7 @@ Note that programs compiled with these features will still work on the compiler 
 
 1) Comments: any text that starts with a `#` is a comment until the next `;` and will be ignored.
 
-2) If/Elif/Else constructs: the syntax is: `if var not 0 do; ... elif var not 0 do; ... else do; ... end;`
+2) If/Elif/Else constructs: the syntax is: `if var not 0 do; ... elif var not 0 do; ... else; ... endif;`
   
 This project is an interpreter for this very simple language.
 
@@ -37,6 +37,7 @@ Running the program:
 
 Important notes:
 The interpreter is fairly forgiving: if a variable doen't exist, it is assumed to equal zero.
+The variable name `c19d8376-bd42-47fa-94c3-aba77f40e2e8` is reserved (if you wanted to use it for whatever reason).
 
 Command line switches:
 `-v` = Turns the extra printing OFF (this will only print at the end).
