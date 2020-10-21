@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Scanner;
@@ -51,6 +53,43 @@ public class Interpreter {
 			System.out.println(name + " = " + val);
 		}
 	}
+	
+	/**
+	 * Find the next instance of any of the instructions in instructions.
+	 * @param startFrom - The index to begin from.
+	 * @param instructions - An array of instructions to look for.
+	 * @return - The next instance of any of the instructions.
+	 */
+	private int findNext(int startFrom, String... instructions) {
+		String[] branch = {"if", "while"};
+		HashSet<String> needsTerminate = new HashSet<String>(Arrays.asList(branch));
+		HashSet<String> lookingFor = new HashSet<String>(Arrays.asList(instructions));
+		int depth = 0; //If depth is not zero, ignore instructions. Depth is only reduced by end instructions.
+		startFrom++; //So we don't instantly "find" the instruction we're on.
+		for (;startFrom < tokens.length;startFrom++) {
+			String ci = tokens[startFrom].trim().toLowerCase();
+			if (ci.startsWith("#")) { //Comment, so ignore it.
+				continue;
+			}
+			String[] split = ci.split(" ");
+			String inst = split[0];
+			if (depth == 0 && lookingFor.contains(inst)) {
+				return startFrom; //Found it.
+			}
+			else if (needsTerminate.contains(inst)) {
+				depth++;
+			}
+			if (depth != 0) {
+				//Non-zero depth, so if this isn't an end, ignore it.
+				if (inst.contentEquals("end")) {
+					depth--;
+				}
+			}
+		}
+		return -1; //Didn't find anything.
+		
+	}
+	
 	/**
 	 * Runs the code we've had loaded.
 	 * 
@@ -61,7 +100,7 @@ public class Interpreter {
 		//We now just step through the code one instruction at a time and run it.
 		int pointer = 0; //This can go forward and backwards, so don't use a for loop.
 		int maxPointer = tokens.length;
-		boolean skipping = false; //If this is true, ignore any code we come across.
+		List<Boolean> isIfResolved = new ArrayList<Boolean>();
 		String ci;
 		String inst;
 		String var;
@@ -74,12 +113,6 @@ public class Interpreter {
 			}
 			if (printTraceSteps) {
 				System.out.println(ci);
-			}
-			if (skipping) {
-				if (printTraceSteps) {
-					System.out.println("Skipped.");
-				}
-				
 			}
 			split = ci.split(" ");
 			inst = split[0];
@@ -103,19 +136,45 @@ public class Interpreter {
 				}
 				continue;
 			}
+			//Add the else and endif instructions here.
+			else if (inst.contentEquals("else")) {
+				if (isIfResolved.get(isIfResolved.size() - 1)){
+					pointer = findNext(pointer, "endif"); //Aren't looking for any other control structures.
+				}
+				pointer++; //Add one to the pointer so we don't get stuck.
+				continue; //Required (as below) because otherwise we get an error on split[1];
+			}
+			else if (inst.contentEquals("endif")) {
+				//Remove the last boolean from our list.
+				isIfResolved.remove(isIfResolved.size() - 1);
+				pointer++;
+				continue;
+			}
 			var = split[1];
 			if (inst.contentEquals("if")) {
 				if (vars.getOrDefault(var, 0) == 0) {
 					//Zero, so skip.
-					skipping = true;
-					pointer++;
+					pointer = findNext(pointer, "endif", "elif", "else");
+					isIfResolved.add(false);
 					continue;
 				}
 				else {
-					//Do not skip.
+					//Running this code, but we need to ensure that the next elif doesn't run.
+					isIfResolved.add(true);
 				}
 			}
-			if (inst.contentEquals("while")) {
+			else if (inst.contentEquals("elif")) {
+				if (isIfResolved.get(isIfResolved.size() - 1) || vars.getOrDefault(var, 0) == 0) {
+					//Either condition is false or we've already dealt with this.
+					pointer = findNext(pointer, "endif", "elif", "else");
+					continue;
+				}
+				else {
+					//Running this code, but we need to ensure that the next elif doesn't run.
+					isIfResolved.add(true);
+				}
+			}
+			else if (inst.contentEquals("while")) {
 				//While loops are annoying.
 				//First off, save the current pointer onto the pointer stack.
 				stack.add(pointer);
