@@ -6,6 +6,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Scanner;
 
 /**
@@ -42,7 +44,7 @@ public class Compiler {
 	 */
 	public Compiler(File readCodeFrom) throws FileNotFoundException {
 		Scanner s = null;
-		String src = "";
+		String src = "clear c19d8376-bd42-47fa-94c3-aba77f40e2e8; incr c19d8376-bd42-47fa-94c3-aba77f40e2e8;"; //This variable has ID 0 and value 1, so will create a GOTO that always passes.
 		try {
 		    s = new Scanner(readCodeFrom);
 		    while (s.hasNextLine()) {
@@ -59,14 +61,14 @@ public class Compiler {
 		}
 	}
 	
-	private byte[] numToBytes(Short s) {
+	static byte[] numToBytes(Short s) {
 		byte[] res = new byte[2];
 		res[0] = (byte) ((s >> 8) & 0xff);
 		res[1] = (byte) (s & 0xff);
 		return res;
 	}
 	
-	private byte[] numToBytes(Integer i) {
+	static byte[] numToBytes(Integer i) {
 		byte[] res = new byte[4];
 		res[0] = (byte) ((i >> 24) & 0xff);
 		res[1] = (byte) ((i >> 16) & 0xff);
@@ -76,6 +78,57 @@ public class Compiler {
 	}
 	
 	private static final byte[] header = {0x42, 0x4f, 0x4e, 0x45}; 
+	
+	/**
+	 * Find the next instance of any of the instructions in instructions.
+	 * @param startFrom - The index to begin from. We can convert this to a pointer by multiplying by 7.
+	 * @param instructions - An array of instructions to look for.
+	 * @return - The pointer increment to where the next instance of this data is.
+	 */
+	private int findNext(int startFrom, String... instructions) {
+		String[] branch = {"if", "while"};
+		HashSet<String> needsTerminate = new HashSet<String>(Arrays.asList(branch));
+		HashSet<String> lookingFor = new HashSet<String>(Arrays.asList(instructions));
+		int depth = 0; //If depth is not zero, ignore instructions. Depth is only reduced by end instructions.
+		startFrom++; //So we don't instantly "find" the instruction we're on.
+		int pointerIncrement = 0; //Since we're attempting to predict where code will be, we need to be clever with looking ahead.
+		for (;startFrom < tokens.length;startFrom++) {
+			String ci = tokens[startFrom].trim().toLowerCase();
+			if (ci.startsWith("#")) { //Comment, so ignore it.
+				continue;
+			}
+			String[] split = ci.split(" ");
+			String inst = split[0];
+			if (depth == 0 && lookingFor.contains(inst)) {
+				return pointerIncrement; //Found it.
+			}
+			else if (needsTerminate.contains(inst)) {
+				depth++;
+			}
+			if (depth != 0) {
+				//Non-zero depth, so if this isn't an end, ignore it.
+				if (inst.contentEquals("end")) {
+					depth--;
+				}
+			}
+			if (inst.contentEquals("while") || inst.contentEquals("endif")) {
+				//While and endif statements are removed.
+				continue;
+			}
+			pointerIncrement += 7; //We add 7 bytes to the pointer.
+			if (inst.contentEquals("if")){
+				//If statements compile to 14 bytes, not 7.
+				pointerIncrement += 7;
+			}
+			else if (inst.contentEquals("elif")) {
+				//Elif compiles to a massive 21 bytes.
+				pointerIncrement += 14;
+			}
+			
+		}
+		return -1; //Didn't find anything.
+		
+	}
 	
 	
 	/**
@@ -109,6 +162,7 @@ public class Compiler {
 		int length = 0;
 		ArrayList<String> definedVars = new ArrayList<String>();
 		ArrayList<Long> whileLoopPointers = new ArrayList<Long>();
+		
 		byte[] currentInstruction;
 		for (String line: tokens) {
 			if (line.trim().startsWith("#")) {
@@ -126,7 +180,22 @@ public class Compiler {
 				}
 				varID = numToBytes((short) (definedVars.indexOf(var) & 0xffff));
 			}
-			if (inst.contentEquals("incr")) {
+			//Note: +2 instructions means "skip the next instruction"
+	        if (inst.contentEquals("if")) {
+	        	//An if statement becomes GOTO <condition> <+2 instructions> GOTO <always> (next elif/else/endif). 
+	        }
+	        else if (inst.contentEquals("elif")) {
+	        	//An elif statement compiles to the following mess: GOTO <always> <+2 instructions> GOTO <condition> <+2 instructions> GOTO <always> (next elif/else/endif).
+	        	//The position of the elif is the middle of that vile mess.
+	        }
+	        else if (inst.contentEquals("else")) {
+	        	//An else statement compiles to a tiny: GOTO <always> (next endif). However please note that the actual "position" of the else is the instruction after that.
+	        }
+	        else if (inst.contentEquals("endif")) {
+	        	//This is removed at compile.
+	        	continue;
+	        }
+	        else if (inst.contentEquals("incr")) {
 				//Add the standard bytecode, nothing special.
 				currentInstruction[0] = (byte) 0x80;
 				currentInstruction[1] = varID[0]; currentInstruction[2] = varID[1];
@@ -192,5 +261,33 @@ public class Compiler {
 		returnStream.write(numToBytes(length));
 		returnStream.write(rawCode.toByteArray());
 		return returnStream.toByteArray(); //Temporary
+	}
+}
+
+/**
+ * Represents an edit that must be applied to the compiled code before it is returned.
+ * @author daniel
+ */
+class CodeEdit{
+	byte[] newInstruction = new byte[7];
+	
+	void setInstruction(byte inst) {
+		newInstruction[0] = inst;
+	}
+	
+	void setVar(int varNum) {
+		newInstruction[1] = (byte) ((varNum >> 8) & 0xff);
+		newInstruction[2] = (byte) ((varNum) & 0xff);
+	}
+	
+	void setPointer(int pointer) {
+		byte[] pointerData = Compiler.numToBytes(pointer);
+		for (int i = 0; i<4; i++) {
+			newInstruction[i+3] = pointerData[i];
+		}
+	}
+	
+	byte[] getNewInstruction() {
+		return newInstruction;
 	}
 }

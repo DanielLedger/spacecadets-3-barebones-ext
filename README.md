@@ -25,7 +25,7 @@ Note that programs compiled with these features will still work on the compiler 
 
 1) Comments: any text that starts with a `#` is a comment until the next `;` and will be ignored.
 
-2) If/Elif/Else constructs: the syntax is: `if var not 0 do; ... elif var not 0 do; ... else; ... endif;`
+2) If/Elif/Else constructs: the syntax is: `if var not 0 do; ... elif var not 0 do; ... else; ... endif;` These do not work with the compiler (and there is no plan to make them do so).
   
 This project is an interpreter for this very simple language.
 
